@@ -1,0 +1,133 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "name": "Wireless Headphones",
+      "description": "Premium noise-cancelling wireless headphones with 30-hour battery life and superior sound quality.",
+      "price": 299000,
+      "stock": 15,
+      "imageUrl": "/uploads/f8865a30-220d-463a-af42-ec0a360f4c7b.jpg",
+      "category": "Electronics",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Running Shoes",
+      "description": "Lightweight and breathable running shoes with cushioned sole for maximum comfort during workouts.",
+      "price": 450000,
+      "stock": 30,
+      "imageUrl": "/uploads/bb5bb080-cc75-404d-b1fd-c56de1d3a637.jpg",
+      "category": "Fashion",
+      "createdAt": "2024-01-02T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "name": "Stainless Steel Water Bottle",
+      "description": "Insulated 500ml stainless steel water bottle keeps drinks cold for 24 hours or hot for 12 hours.",
+      "price": 85000,
+      "stock": 50,
+      "imageUrl": "/uploads/04fd6dec-f998-47b6-afe0-4bee8d6348ae.jpg",
+      "category": "Home & Kitchen",
+      "createdAt": "2024-01-03T00:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "name": "Mechanical Keyboard",
+      "description": "Compact TKL mechanical keyboard with Cherry MX switches, RGB backlight, and USB-C connectivity.",
+      "price": 750000,
+      "stock": 10,
+      "imageUrl": "/uploads/672f781d-9702-4725-a47a-ea93f9669495.jpg",
+      "category": "Electronics",
+      "createdAt": "2024-01-04T00:00:00.000Z"
+    },
+    {
+      "id": "5",
+      "name": "Yoga Mat",
+      "description": "Non-slip eco-friendly yoga mat 6mm thick with carrying strap. Perfect for yoga, pilates, and stretching.",
+      "price": 120000,
+      "stock": 25,
+      "imageUrl": "/uploads/b41bea5f-3764-40cc-b3ed-547b0ef52441.jpg",
+      "category": "Sports",
+      "createdAt": "2024-01-05T00:00:00.000Z"
+    },
+    {
+      "id": "6",
+      "name": "Coffee Maker",
+      "description": "12-cup programmable drip coffee maker with built-in grinder and thermal carafe to keep coffee fresh.",
+      "price": 550000,
+      "stock": 8,
+      "imageUrl": "/uploads/88c564dd-0e31-4fc2-9298-20343a089173.jpg",
+      "category": "Home & Kitchen",
+      "createdAt": "2024-01-06T00:00:00.000Z"
+    },
+    {
+      "id": "60a25cc5-ee15-46b8-b55e-c43e72df387a",
+      "name": "Tas",
+      "description": "test",
+      "price": 70000,
+      "stock": 12,
+      "imageUrl": "/uploads/e5a7c422-1b88-4abc-a7d6-70e5fe40bd76.jpg",
+      "category": "Fashion",
+      "createdAt": "2026-04-29T04:06:00.315Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "a2a6dbd4-7f26-44fb-891a-ff08a9a730b6",
+      "customerName": "qwerty",
+      "customerEmail": "qwerty@gmail.com",
+      "address": "qwertyyui, jakarta, 12345",
+      "items": [
+        {
+          "product": {
+            "id": "3",
+            "name": "Stainless Steel Water Bottle",
+            "description": "Insulated 500ml stainless steel water bottle keeps drinks cold for 24 hours or hot for 12 hours.",
+            "price": 85000,
+            "stock": 50,
+            "imageUrl": "/uploads/placeholder-bottle.jpg",
+            "category": "Home & Kitchen",
+            "createdAt": "2024-01-03T00:00:00.000Z"
+          },
+          "quantity": 1
+        }
+      ],
+      "total": 85000,
+      "status": "delivered",
+      "createdAt": "2026-04-28T22:49:26.290Z"
+    },
+    {
+      "id": "a3476802-ff31-4cbe-80eb-cbde9e612a97",
+      "customerName": "qwertyu",
+      "customerEmail": "qwerty@gmail.com",
+      "address": "asddffgh, jakarta, 12345",
+      "items": [
+        {
+          "product": {
+            "id": "1",
+            "name": "Wireless Headphones",
+            "description": "Premium noise-cancelling wireless headphones with 30-hour battery life and superior sound quality.",
+            "price": 299000,
+            "stock": 15,
+            "imageUrl": "/uploads/f8865a30-220d-463a-af42-ec0a360f4c7b.jpg",
+            "category": "Electronics",
+            "createdAt": "2024-01-01T00:00:00.000Z"
+          },
+          "quantity": 1
+        }
+      ],
+      "total": 299000,
+      "status": "delivered",
+      "createdAt": "2026-04-28T23:52:41.022Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "2c02f233-2697-45e5-866b-cad131479b55",
+      "name": "qwertyu",
+      "email": "qwerty@gmail.com",
+      "passwordHash": "0e0970a4b4dbdfd04cacd286f8da305fd45dd86f9ff1a0702e7132e93733810d",
+      "createdAt": "2026-04-28T23:19:15.633Z"
+    }
+  ]
+}
