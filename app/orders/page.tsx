@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Order } from "@/lib/types";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/icons";
 import { useUser } from "@/context/UserContext";
+import { formatPrice } from "@/lib/utils";
 
 const STATUS_COLORS: Record<Order["status"], string> = {
   pending: "bg-amber-50 text-amber-700 border border-amber-100",
@@ -15,13 +16,6 @@ const STATUS_COLORS: Record<Order["status"], string> = {
 
 function OrderRow({ order }: { order: Order }) {
   const [expanded, setExpanded] = useState(false);
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(price);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("id-ID", {
@@ -90,8 +84,7 @@ function OrderRow({ order }: { order: Order }) {
 }
 
 export default function OrdersPage() {
-  const { user } = useUser();
-  const [email, setEmail] = useState("");
+  const { user, loading: userLoading } = useUser();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -99,31 +92,30 @@ export default function OrdersPage() {
   // Auto-load orders when user is logged in
   useEffect(() => {
     if (user?.email) {
+      setLoading(true);
       fetch(`/api/orders?email=${encodeURIComponent(user.email)}`)
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error("Failed to fetch");
+          return r.json();
+        })
         .then((data: Order[]) => setOrders(Array.isArray(data) ? data : []))
         .catch(() => setError("Failed to fetch orders."))
         .finally(() => setLoading(false));
     }
   }, [user]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(
-        `/api/orders?email=${encodeURIComponent(email.trim())}`,
-      );
-      const data = await res.json();
-      setOrders(Array.isArray(data) ? data : []);
-    } catch {
-      setError("Failed to fetch orders. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (userLoading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-48" />
+          <div className="h-4 bg-gray-200 rounded w-64" />
+          <div className="h-20 bg-gray-200 rounded-2xl" />
+          <div className="h-20 bg-gray-200 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -135,39 +127,61 @@ export default function OrdersPage() {
       </div>
 
       {!user && (
-        <>
-          <div className="bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-2xl p-4 mb-6 flex items-center justify-between gap-3">
-            <p className="text-sm text-indigo-700">
-              <Link href="/login" className="font-semibold hover:underline">
-                Sign in
-              </Link>{" "}
-              to automatically view your orders.
-            </p>
-          </div>
-
-          <form onSubmit={handleSearch} className="flex gap-3 mb-8">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email to look up orders"
-              className="flex-1 border border-gray-200 bg-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md hover:shadow-indigo-200"
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 flex items-center justify-center">
+            <svg
+              className="w-7 h-7 text-indigo-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              {loading ? "Searching..." : "Search"}
-            </button>
-          </form>
-        </>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">
+            Sign in to view your orders
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Log in to your account to track your order history and status.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/login?redirect=/orders"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-indigo-500 hover:to-violet-500 transition-all shadow-md shadow-indigo-200 active:scale-[0.98]"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="border border-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98]"
+            >
+              Create Account
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {user && loading && (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-20 bg-gray-100 rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
       )}
 
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-      {orders !== null &&
+      {user &&
+        !loading &&
+        orders !== null &&
         (orders.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
@@ -189,8 +203,14 @@ export default function OrdersPage() {
               No orders found
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              No orders associated with this email.
+              You haven&apos;t placed any orders yet.
             </p>
+            <Link
+              href="/products"
+              className="inline-block mt-6 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-indigo-500 hover:to-violet-500 transition-all shadow-md shadow-indigo-200 active:scale-[0.98]"
+            >
+              Start Shopping
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">

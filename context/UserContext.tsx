@@ -36,12 +36,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/user/auth")
-      .then((r) => r.json())
-      .then((data) => setUser(data.user ?? null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
+    refresh();
+  }, [refresh]);
 
   const logout = async () => {
     await fetch("/api/user/auth", { method: "DELETE" });

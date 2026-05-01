@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
+import { formatPrice } from "@/lib/utils";
 
 type FormData = {
   customerName: string;
@@ -32,12 +33,12 @@ export default function CheckoutForm() {
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(price);
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (items.length === 0) {
+      router.replace("/cart");
+    }
+  }, [items.length, router]);
 
   const validate = (): boolean => {
     const newErrors: Partial<FormData> = {};
@@ -69,9 +70,9 @@ export default function CheckoutForm() {
         body: JSON.stringify({
           customerName: user?.name ?? form.customerName,
           customerEmail: user?.email ?? form.customerEmail,
+          phone: form.phone,
           address: fullAddress,
           items,
-          total: totalPrice,
         }),
       });
       if (!response.ok) {

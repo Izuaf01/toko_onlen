@@ -3,6 +3,8 @@ import path from "path";
 import type { DB, Product, Order, User } from "./types";
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
+const LOCK_PATH = DB_PATH + ".lock";
+const LOCK_TIMEOUT = 5000;
 
 const SEED_PRODUCTS: Product[] = [
   {
@@ -84,11 +86,57 @@ function ensureDB(): void {
   }
 }
 
+// ── Simple file lock to prevent race conditions ──────────────────────────────
+
+function acquireLock(): void {
+  const start = Date.now();
+  while (fs.existsSync(LOCK_PATH)) {
+    try {
+      const stat = fs.statSync(LOCK_PATH);
+      if (Date.now() - stat.mtimeMs > LOCK_TIMEOUT) {
+        fs.unlinkSync(LOCK_PATH);
+        break;
+      }
+    } catch {
+      break;
+    }
+    if (Date.now() - start > LOCK_TIMEOUT) {
+      try {
+        fs.unlinkSync(LOCK_PATH);
+      } catch {
+        /* ignore */
+      }
+      break;
+    }
+    const waitUntil = Date.now() + 10;
+    while (Date.now() < waitUntil) {
+      /* spin */
+    }
+  }
+  fs.writeFileSync(LOCK_PATH, String(process.pid), "utf-8");
+}
+
+function releaseLock(): void {
+  try {
+    fs.unlinkSync(LOCK_PATH);
+  } catch {
+    /* ignore */
+  }
+}
+
+function withLock<T>(fn: () => T): T {
+  acquireLock();
+  try {
+    return fn();
+  } finally {
+    releaseLock();
+  }
+}
+
 function readDB(): DB {
   ensureDB();
   const raw = fs.readFileSync(DB_PATH, "utf-8");
   const db = JSON.parse(raw) as DB;
-  // migrate older db files that don't have users
   if (!db.users) db.users = [];
   return db;
 }
@@ -98,7 +146,8 @@ function writeDB(db: DB): void {
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
 }
 
-// Products
+// ── Products ─────────────────────────────────────────────────────────────────
+
 export function getProducts(): Product[] {
   return readDB().products;
 }
@@ -108,34 +157,41 @@ export function getProductById(id: string): Product | undefined {
 }
 
 export function createProduct(product: Product): Product {
-  const db = readDB();
-  db.products.push(product);
-  writeDB(db);
-  return product;
+  return withLock(() => {
+    const db = readDB();
+    db.products.push(product);
+    writeDB(db);
+    return product;
+  });
 }
 
 export function updateProduct(
   id: string,
   data: Partial<Product>,
 ): Product | null {
-  const db = readDB();
-  const index = db.products.findIndex((p) => p.id === id);
-  if (index === -1) return null;
-  db.products[index] = { ...db.products[index], ...data };
-  writeDB(db);
-  return db.products[index];
+  return withLock(() => {
+    const db = readDB();
+    const index = db.products.findIndex((p) => p.id === id);
+    if (index === -1) return null;
+    db.products[index] = { ...db.products[index], ...data };
+    writeDB(db);
+    return db.products[index];
+  });
 }
 
 export function deleteProduct(id: string): boolean {
-  const db = readDB();
-  const index = db.products.findIndex((p) => p.id === id);
-  if (index === -1) return false;
-  db.products.splice(index, 1);
-  writeDB(db);
-  return true;
+  return withLock(() => {
+    const db = readDB();
+    const index = db.products.findIndex((p) => p.id === id);
+    if (index === -1) return false;
+    db.products.splice(index, 1);
+    writeDB(db);
+    return true;
+  });
 }
 
-// Orders
+// ── Orders ───────────────────────────────────────────────────────────────────
+
 export function getOrders(): Order[] {
   return readDB().orders;
 }
@@ -151,25 +207,77 @@ export function getOrderById(id: string): Order | undefined {
 }
 
 export function createOrder(order: Order): Order {
-  const db = readDB();
-  db.orders.push(order);
-  writeDB(db);
-  return order;
+  return withLock(() => {
+    const db = readDB();
+    db.orders.push(order);
+    writeDB(db);
+    return order;
+  });
+}
+
+/**
+ * Creates an order AND reduces stock for each item atomically.
+ * Recalculates total server-side to prevent client manipulation.
+ */
+export function createOrderWithStockUpdate(
+  order: Order,
+): { success: true; order: Order } | { success: false; error: string } {
+  return withLock(() => {
+    const db = readDB();
+
+    // Validate stock
+    for (const item of order.items) {
+      const product = db.products.find((p) => p.id === item.product.id);
+      if (!product) {
+        return {
+          success: false,
+          error: `Product "${item.product.name}" not found`,
+        };
+      }
+      if (product.stock < item.quantity) {
+        return {
+          success: false,
+          error: `Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${item.quantity}`,
+        };
+      }
+    }
+
+    // Recalculate total from actual DB prices
+    let calculatedTotal = 0;
+    for (const item of order.items) {
+      const product = db.products.find((p) => p.id === item.product.id)!;
+      calculatedTotal += product.price * item.quantity;
+    }
+    order.total = calculatedTotal;
+
+    // Reduce stock
+    for (const item of order.items) {
+      const product = db.products.find((p) => p.id === item.product.id)!;
+      product.stock -= item.quantity;
+    }
+
+    db.orders.push(order);
+    writeDB(db);
+    return { success: true, order };
+  });
 }
 
 export function updateOrderStatus(
   id: string,
   status: Order["status"],
 ): Order | null {
-  const db = readDB();
-  const index = db.orders.findIndex((o) => o.id === id);
-  if (index === -1) return null;
-  db.orders[index].status = status;
-  writeDB(db);
-  return db.orders[index];
+  return withLock(() => {
+    const db = readDB();
+    const index = db.orders.findIndex((o) => o.id === id);
+    if (index === -1) return null;
+    db.orders[index].status = status;
+    writeDB(db);
+    return db.orders[index];
+  });
 }
 
-// Users
+// ── Users ────────────────────────────────────────────────────────────────────
+
 export function getUsers(): User[] {
   return readDB().users;
 }
@@ -185,8 +293,10 @@ export function getUserByEmail(email: string): User | undefined {
 }
 
 export function createUser(user: User): User {
-  const db = readDB();
-  db.users.push(user);
-  writeDB(db);
-  return user;
+  return withLock(() => {
+    const db = readDB();
+    db.users.push(user);
+    writeDB(db);
+    return user;
+  });
 }

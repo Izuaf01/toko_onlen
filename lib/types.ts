@@ -18,6 +18,7 @@ export type Order = {
   id: string;
   customerName: string;
   customerEmail: string;
+  phone: string;
   address: string;
   items: CartItem[];
   total: number;

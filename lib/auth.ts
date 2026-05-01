@@ -24,7 +24,6 @@ export function verifyPassword(password: string, hash: string): boolean {
 // ── Admin auth ────────────────────────────────────────────────────────────────
 
 export function verifyCredentials(username: string, password: string): boolean {
-  // Simple comparison — in production use bcrypt
   return username === ADMIN_USERNAME && password === ADMIN_PASSWORD_HASH;
 }
 

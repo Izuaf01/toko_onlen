@@ -29,6 +29,7 @@ export default function AdminEditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const [productId, setProductId] = useState<string>("");
   const [form, setForm] = useState<FormData | null>(null);
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +37,7 @@ export default function AdminEditProductPage({
 
   useEffect(() => {
     params.then(({ id }) => {
+      setProductId(id);
       fetch(`/api/products/${id}`)
         .then((r) => {
           if (!r.ok) throw new Error("Not found");
@@ -83,9 +85,7 @@ export default function AdminEditProductPage({
     if (!form || !validate()) return;
     setSubmitting(true);
 
-    const idFromUrl = window.location.pathname.split("/").at(-2)!;
-
-    const res = await fetch(`/api/products/${idFromUrl}`, {
+    const res = await fetch(`/api/products/${productId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

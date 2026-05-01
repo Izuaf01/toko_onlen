@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { getOrders, getOrdersByEmail, createOrder } from "@/lib/db";
-import { isAdminAuthenticated } from "@/lib/auth";
+import {
+  getOrders,
+  getOrdersByEmail,
+  createOrderWithStockUpdate,
+  getUserById,
+} from "@/lib/db";
+import { isAdminAuthenticated, getLoggedInUserId } from "@/lib/auth";
 import type { Order, CartItem } from "@/lib/types";
 
 export async function GET(request: Request) {
@@ -8,6 +13,20 @@ export async function GET(request: Request) {
   const email = searchParams.get("email");
 
   if (email) {
+    // Require user to be logged in and match the email, OR be admin
+    const userId = await getLoggedInUserId();
+    const isAdmin = await isAdminAuthenticated();
+
+    if (!isAdmin) {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const user = getUserById(userId);
+      if (!user || user.email.toLowerCase() !== email.toLowerCase()) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     const orders = getOrdersByEmail(email);
     return NextResponse.json(orders);
   }
@@ -62,13 +81,18 @@ export async function POST(request: Request) {
     id: crypto.randomUUID(),
     customerName: data.customerName as string,
     customerEmail: data.customerEmail as string,
+    phone: typeof data.phone === "string" ? data.phone : "",
     address: data.address as string,
     items: data.items as CartItem[],
-    total: typeof data.total === "number" ? data.total : 0,
+    total: 0, // Will be recalculated server-side
     status: "pending",
     createdAt: new Date().toISOString(),
   };
 
-  const created = createOrder(order);
-  return NextResponse.json(created, { status: 201 });
+  const result = createOrderWithStockUpdate(order);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json(result.order, { status: 201 });
 }
